@@ -19,12 +19,15 @@ if (Object.alreadyInjected === undefined)
                 'userAgent' : true,
                 'vendorSub' : true,
                 'vendor' : true,
+                'deviceMemory' : true,
+                'hardwareConcurrency' : true,
                 'plugins' : true
             },
             'document' : {
                 'hasStorageAccess' : true,
                 'requestStorageAccess' : true,
-                'cookie' : true
+                'cookie' : true,
+                'fonts' : true
             },
             'screen' : {
                 'pixelDepth' : true,
@@ -36,6 +39,10 @@ if (Object.alreadyInjected === undefined)
             'sessionStorage' : true
         }
     };
+
+    var traceD = {};
+
+
 
     Object.getPropertyDescriptor = function (subject, name) {
         var pd = Object.getOwnPropertyDescriptor(subject, name);
@@ -52,6 +59,19 @@ if (Object.alreadyInjected === undefined)
         xhr.open("POST", 'http://1.255.54.63:10921/server', true);
         xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
         xhr.send(log_str)
+    }
+
+    function loopTrace () {
+        for (var key in traceD) {
+            var ob = traceD[key];
+            ob.cur = eval(key);
+            if (ob.prev != ob.cur)
+            {
+                send_log(ob.expr + "monitor");
+            }
+            ob.prev = ob.cur;
+            setTimeout( loopTrace, 1000 );
+        }
     }
 
 
@@ -82,8 +102,6 @@ if (Object.alreadyInjected === undefined)
                     console.error("Property descriptor for",
                         objectName + '.' + propertyName,
                         "doesn't have getter or value?");
-                    logValue(objectName + '.' + propertyName, "",
-                        "get(failed)", callContext, logSettings);
                     return;
                 }
 
@@ -106,8 +124,6 @@ if (Object.alreadyInjected === undefined)
                     console.error("Property descriptor for",
                         objectName + '.' + propertyName,
                         "doesn't have setter or value?");
-                    logValue(objectName + '.' + propertyName, value,
-                        "set(failed)", callContext, logSettings);
                     return value;
                 }
 
@@ -122,8 +138,21 @@ if (Object.alreadyInjected === undefined)
         }
         else
         {
-            // TODO : implement monitoring for unconfigurable property
-            // monitor(object, propertyName);
+            var originalGetter = propDesc.get;
+            var originalValue = propDesc.value;
+            var origProperty;
+
+            // get original value
+            if (originalGetter) { // if accessor property
+                origProperty = originalGetter.call(this);
+            } else if ('value' in propDesc) { // if data property
+                origProperty = originalValue;
+            } else {
+                console.error("Property descriptor for",
+                    objectName + '.' + propertyName,
+                    "doesn't have getter or value?");
+            }
+            traceD[objectName] = { 'cur' : origProperty, 'prev' : origProperty }
         }
     }
 
@@ -147,4 +176,5 @@ if (Object.alreadyInjected === undefined)
     }
 
     instrumentTree(monitorD['window'], 'window');
+    loopTrace();
 }
