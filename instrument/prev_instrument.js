@@ -61,13 +61,25 @@ if (Object.alreadyInjected === undefined)
         xhr.send(log_str)
     }
 
+    function getStackTrace() {
+        var stack;
+
+        try {
+        throw new Error();
+        } catch (err) {
+        stack = err.stack;
+        }
+
+        return stack;
+    }
+
     function loopTrace () {
         for (var key in traceD) {
             var ob = traceD[key];
             ob.cur = eval(key);
             if (ob.prev != ob.cur)
             {
-                send_log(ob.expr + "monitor");
+                send_log(key + "monitor");
             }
             ob.prev = ob.cur;
             setTimeout( loopTrace, 1000 );
@@ -106,7 +118,7 @@ if (Object.alreadyInjected === undefined)
                 }
 
                 send_log(objectName + '.' + propertyName + origProperty +
-                        "get");
+                        "get from " + getStackTrace());
                     return origProperty;
                 }
             })(),
@@ -129,7 +141,7 @@ if (Object.alreadyInjected === undefined)
 
                 // log set
                 send_log(objectName + '.' + propertyName + value +
-                    "set");
+                    "set from" + getStackTrace());
                 // return new value
                 return returnValue;
                 }
