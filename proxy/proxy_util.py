@@ -361,14 +361,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         pass
 
     def response_handler(self, req, req_body, res, res_body):
-        if 'Content-Type' in res.headers and res.headers['Content-type'] in ['text/javascript', 'application/javascript']:
-            u = urlparse.urlsplit(req.path)
-            res_body = self.handle_js(u.path, res_body)
-
-    def handle_js(self, js_name, js_data):
-        print(js_name)
-        return js_data
-
+        pass
 
     def save_handler(self, req, req_body, res, res_body):
         pass
