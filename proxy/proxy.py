@@ -1,7 +1,11 @@
 from proxy_util import *
 
-
 class JSInterceptProxyHandler(ProxyRequestHandler):
+
+    def __init__(self, *args, **kwargs):
+        #self.reproducer = Reproducer()
+        ProxyRequestHandler.__init__(self, *args, **kwargs)
+
     def response_handler(self, req, req_body, res, res_body):
         if 'Content-Type' in res.headers and res.headers['Content-type'] in ['text/javascript', 'application/javascript']:
             u = urlparse.urlsplit(req.path)
