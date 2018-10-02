@@ -1,19 +1,20 @@
 from proxy_util import *
+from ..instrument.reproducer import *
 
 class JSInterceptProxyHandler(ProxyRequestHandler):
 
     def __init__(self, *args, **kwargs):
-        #self.reproducer = Reproducer()
+        self.reproducer = Reproducer()
         ProxyRequestHandler.__init__(self, *args, **kwargs)
 
     def response_handler(self, req, req_body, res, res_body):
         if 'Content-Type' in res.headers and res.headers['Content-type'] in ['text/javascript', 'application/javascript']:
             u = urlparse.urlsplit(req.path)
-            res_body = self.handle_js(u.path, res_body)
+            return self.handle_js(u.path, res_body)
+        return None
 
     def handle_js(self, js_name, js_data):
-        print(js_name)
-        return js_data
+        return self.reproducer.instrument_file(js_name, js_data)
 
 
 
