@@ -234,6 +234,17 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             filtered_encodings = [x for x in re.split(r',\s*', ae) if x in ('identity', 'gzip', 'x-gzip', 'deflate')]
             headers['Accept-Encoding'] = ', '.join(filtered_encodings)
 
+        # intercept CSP
+        if 'Content-Security-Policy' in headers:
+            policies = headers['Content-Security-Policy'].split('; ')
+            for i in range(len(policies)):
+                if 'connect-src' in policies[i]:
+                    policies[i] += " %s" % "http://1.255.54.63:10921" # temp server
+                    break
+            else:
+                policies.append("connect-src %s" % "http://1.255.54.63:10921")
+            headers['Content-Security-Policy'] = policies.join('; ')
+
         return headers
 
     def encode_content_body(self, text, encoding):
