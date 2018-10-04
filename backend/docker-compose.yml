@@ -46,6 +46,8 @@ services:
       dockerfile: proxy_worker.Dockerfile
     image: webspector:proxy_worker
     container_name: webspector_proxy_worker
+    volumes:
+      - ./proxy_worker:/home/worker/proxy_worker
     depends_on:
       - db
     links:
@@ -54,6 +56,14 @@ services:
       - "31337:31337"
     networks:
       - ethernet_webspector
+    environment:
+      - PROXY_WORKER_PORT=31337
+      - DB_HOST=192.168.0.255
+      - DB_PORT=3306
+      - DB_DATABASE=webspector
+      - DB_USER=dbadmin
+      - DB_PASSWORD=dbadminpassword
+    command: python3 ./main.py
 
 networks:
   ethernet_webspector:
