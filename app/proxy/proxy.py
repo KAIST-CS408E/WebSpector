@@ -1,5 +1,6 @@
 from proxy_util import *
 from ..instrument.reproducer import *
+from ..config import target_server
 
 class JSInterceptProxyHandler(ProxyRequestHandler):
 
@@ -14,7 +15,7 @@ class JSInterceptProxyHandler(ProxyRequestHandler):
         return None
 
     def handle_js(self, js_name, js_data):
-        return self.reproducer.instrument_file(js_name, js_data)
+        return self.reproducer.instrument_file(js_name, js_data, target_server)
 
 
 

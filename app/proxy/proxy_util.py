@@ -12,6 +12,7 @@ import zlib
 import time
 import json
 import re
+from ..config import target_server
 from string import Template
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
@@ -69,7 +70,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.connect_relay()
 
     def connect_intercept(self):
-        hostname = '.'.join(self.path.split(':')[0].split('.')[1:])
+        hostname = self.path.split(':')[0]
+
         certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
         confpath = "%s/%s.cnf" % (self.certdir.rstrip('/'), hostname)
 
@@ -123,7 +125,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 other.sendall(data)
 
     def do_GET(self):
-        if self.path == 'http://proxy2.test/':
+        if self.path == 'http://webspector.crt/':
             self.send_cacert()
             return
 
@@ -246,10 +248,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             policies = headers['Content-Security-Policy'].split('; ')
             for i in range(len(policies)):
                 if 'connect-src' in policies[i]:
-                    policies[i] += " %s" % "http://1.255.54.63:10921" # temp server
+                    policies[i] += " %s" % target_server # temp server
                     break
-            else:
-                policies.append("connect-src %s" % "http://1.255.54.63:10921")
             headers['Content-Security-Policy'] = '; '.join(policies)
 
         return headers
