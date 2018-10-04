@@ -250,7 +250,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                     break
             else:
                 policies.append("connect-src %s" % "http://1.255.54.63:10921")
-            headers['Content-Security-Policy'] = policies.join('; ')
+            headers['Content-Security-Policy'] = '; '.join(policies)
 
         return headers
 
