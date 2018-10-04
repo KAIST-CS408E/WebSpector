@@ -13,6 +13,9 @@ class WorkerHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200, "Success")
         self.send_header("Allow", "OPTIONS, POST")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "OPTIONS, POST")
+        self.send_header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Length, Content-Type, Accept")
         self.end_headers()
 
 
@@ -46,7 +49,8 @@ class WorkerHandler(BaseHTTPRequestHandler):
             json_data = json.loads(raw_data)
             db = pool.connection()
             cur = db.cursor()
-            cur.execute("INSERT INTO test (json) VALUES ('{}')".format(raw_data.decode("UTF-8")))
+            query = "INSERT INTO test (json) VALUES ('{}')".format(json.dumps(json_data)).replace("\\", "\\\\")
+            cur.execute(query)
             db.commit()
             del cur
             del db
@@ -87,21 +91,21 @@ def run(port=55555, server_class=HTTPServer, handler_class=WorkerHandler):
     httpd.socket = ssl.wrap_socket(httpd.socket, certfile="./cert/host.crt", keyfile="./cert/hostkey_decrypted.pem", server_side=True)
     init()
     try:
-        print("[*] Server Started")
+        print("[*] Server Started", flush=True)
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
     except:
         print("")
         print("[!] exception occurs")
-        print("")
+        print("", flush=True)
         import traceback
         traceback.print_exc()
         exit(1)
     httpd.shutdown()
     httpd.server_close()
     print("")
-    print("[*] Server Ended")
+    print("[*] Server Ended", flush=True)
     fini()
 
 
