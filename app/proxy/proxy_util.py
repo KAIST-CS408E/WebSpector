@@ -12,6 +12,7 @@ import zlib
 import time
 import json
 import re
+from string import Template
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SocketServer import ThreadingMixIn
 from cStringIO import StringIO
@@ -50,6 +51,8 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.tls = threading.local()
         self.tls.conns = {}
+        with open(join_with_script_dir('ssl.conf'), 'r') as fp:
+            self.conf_template = Template(fp.read())
 
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
@@ -67,14 +70,18 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             self.connect_relay()
 
     def connect_intercept(self):
-        hostname = self.path.split(':')[0]
+        hostname = '.'.join(self.path.split(':')[0].split('.')[1:])
         certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
+        confpath = "%s/%s.conf" % (self.certdir.rstrip('/'), hostname)
+
 
         with self.lock:
             if not os.path.isfile(certpath):
+                with open(confpath, 'w') as fp:
+                    fp.write(self.conf_template.substitute(hostname=hostname))
                 epoch = "%d" % (time.time() * 1000)
                 p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
-                p2 = Popen(["openssl", "x509", "-req", "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
+                p2 = Popen(["openssl", "x509", "-req", "-extfile", confpath, "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
                 p2.communicate()
 
         self.wfile.write("%s %d %s\r\n" % (self.protocol_version, 200, 'Connection Established'))
