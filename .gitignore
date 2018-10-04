@@ -1,4 +1,9 @@
 **/db
+**/*.pem
+**/*.csr
+**/*.crt
+**/*.srl
+!cert/rootCA*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
