@@ -40,8 +40,6 @@ if (Object.alreadyInjected === undefined)
         }
     };
 
-    var traceD = {};
-
 
 
     Object.getPropertyDescriptor = function (subject, name) {
@@ -54,11 +52,11 @@ if (Object.alreadyInjected === undefined)
         return pd;
     };
 
-    function send_log(log_str) {
+    function send_log(log_json) {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", 'http://1.255.54.63:10921/' + encodeURI(log_str), true);
-        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        xhr.send(null)
+        xhr.open("POST", '${proxy_dest}', true);
+        xhr.setRequestHeader("Content-type", "application/json");
+        xhr.send(log_json)
     }
 
     function getStackTrace() {
@@ -72,20 +70,6 @@ if (Object.alreadyInjected === undefined)
 
         return stack;
     }
-
-    function loopTrace () {
-        for (var key in traceD) {
-            var ob = traceD[key];
-            ob.cur = eval(key);
-            if (ob.prev != ob.cur)
-            {
-                send_log(key + "monitor");
-            }
-            ob.prev = ob.cur;
-            setTimeout( loopTrace, 1000 );
-        }
-    }
-
 
     function instrumentProperty(object, objectName,  propertyName) {
         var propDesc = Object.getPropertyDescriptor(object, propertyName);
@@ -117,54 +101,17 @@ if (Object.alreadyInjected === undefined)
                     return;
                 }
 
-                send_log(objectName + '.' + propertyName + origProperty +
-                        "get from " + getStackTrace());
-                    return origProperty;
+                send_log({
+                    'name' : objectName,
+                    'property': origProperty,
+                    'location': document.location,
+                    'trace': getStackTrace()
+                });
+                return origProperty;
                 }
             })(),
-            set: (function() {
-                return function(value) {
-                var returnValue;
-
-                // set new value to original setter/location
-                if (originalSetter) { // if accessor property
-                    returnValue = originalSetter.call(this, value);
-                } else if ('value' in propDesc) { // if data property
-                    originalValue = value;
-                    returnValue = value;
-                } else {
-                    console.error("Property descriptor for",
-                        objectName + '.' + propertyName,
-                        "doesn't have setter or value?");
-                    return value;
-                }
-
-                // log set
-                send_log(objectName + '.' + propertyName + value +
-                    "set from" + getStackTrace());
-                // return new value
-                return returnValue;
-                }
-            })()
+            set: propDesc.set
             });
-        }
-        else
-        {
-            var originalGetter = propDesc.get;
-            var originalValue = propDesc.value;
-            var origProperty;
-
-            // get original value
-            if (originalGetter) { // if accessor property
-                origProperty = originalGetter.call(this);
-            } else if ('value' in propDesc) { // if data property
-                origProperty = originalValue;
-            } else {
-                console.error("Property descriptor for",
-                    objectName + '.' + propertyName,
-                    "doesn't have getter or value?");
-            }
-            traceD[objectName] = { 'cur' : origProperty, 'prev' : origProperty }
         }
     }
 
@@ -188,5 +135,4 @@ if (Object.alreadyInjected === undefined)
     }
 
     instrumentTree(monitorD['window'], 'window');
-    loopTrace();
 }
