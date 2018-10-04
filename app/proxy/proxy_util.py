@@ -46,6 +46,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
     cacert = join_with_script_dir('ca.crt')
     certkey = join_with_script_dir('cert.key')
     certdir = join_with_script_dir('certs/')
+    conf_ip_template = Template("subjectAltName=IP:${hostname}")
     conf_template = Template("subjectAltName=DNS:${hostname}")
     timeout = 5
     lock = threading.Lock()
@@ -71,6 +72,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def connect_intercept(self):
         hostname = self.path.split(':')[0]
+        ippat = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+        if ippat.match(hostname):
+            tmp = self.conf_ip_template
+        else:
+            tmp = self.conf_template
 
         certpath = "%s/%s.crt" % (self.certdir.rstrip('/'), hostname)
         confpath = "%s/%s.cnf" % (self.certdir.rstrip('/'), hostname)
@@ -79,7 +85,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         with self.lock:
             if not os.path.isfile(certpath):
                 with open(confpath, 'w') as fp:
-                    fp.write(self.conf_template.substitute(hostname=hostname))
+                    fp.write(tmp.substitute(hostname=hostname))
                 epoch = "%d" % (time.time() * 1000)
                 p1 = Popen(["openssl", "req", "-new", "-key", self.certkey, "-subj", "/CN=%s" % hostname], stdout=PIPE)
                 p2 = Popen(["openssl", "x509", "-req", "-extfile", confpath, "-days", "3650", "-CA", self.cacert, "-CAkey", self.cakey, "-set_serial", epoch, "-out", certpath], stdin=p1.stdout, stderr=PIPE)
@@ -158,7 +164,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             origin = (scheme, netloc)
             if not origin in self.tls.conns:
                 if scheme == 'https':
-                    self.tls.conns[origin] = httplib.HTTPSConnection(netloc, timeout=self.timeout)
+                    self.tls.conns[origin] = httplib.HTTPSConnection(netloc, timeout=self.timeout, context=ssl._create_unverified_context())
                 else:
                     self.tls.conns[origin] = httplib.HTTPConnection(netloc, timeout=self.timeout)
             conn = self.tls.conns[origin]
@@ -180,6 +186,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
             res_body = res.read()
         except Exception as e:
+            print(e)
             if origin in self.tls.conns:
                 del self.tls.conns[origin]
             self.send_error(502)
