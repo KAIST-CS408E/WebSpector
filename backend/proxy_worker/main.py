@@ -3,12 +3,19 @@
 import json
 import os
 import pymysql
+import ssl
 
 from DBUtils.PooledDB import PooledDB, TooManyConnections
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn, TCPServer
 
 class WorkerHandler(BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(200, "Success")
+        self.send_header("Allow", "OPTIONS, POST")
+        self.end_headers()
+
+
     def do_POST(self):
         global pool
         if 'Content-Length' not in self.headers:
@@ -77,6 +84,7 @@ def fini():
 def run(port=55555, server_class=HTTPServer, handler_class=WorkerHandler):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
+    httpd.socket = ssl.wrap_socket(httpd.socket, certfile="./cert/host.crt", keyfile="./cert/hostkey_decrypted.pem", server_side=True)
     init()
     try:
         print("[*] Server Started")
