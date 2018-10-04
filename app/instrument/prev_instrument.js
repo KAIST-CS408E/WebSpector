@@ -80,7 +80,7 @@ if (Object.alreadyInjected === undefined)
             var originalGetter = propDesc.get;
             var originalSetter = propDesc.set;
             var originalValue = propDesc.value;
-
+            var timer = true;
             // We overwrite both data and accessor properties as an instrumented
             // accessor property
             Object.defineProperty(object, propertyName, {
@@ -101,16 +101,40 @@ if (Object.alreadyInjected === undefined)
                     return;
                 }
 
-                send_log({
-                    'name' : objectName,
-                    'property': origProperty,
-                    'location': document.location,
-                    'trace': getStackTrace()
-                });
+                if (timer)
+                {
+                    timer = false;
+                    send_log(JSON.stringify({
+                        'name' : objectName + '.' + propertyName,
+                        'property': origProperty,
+                        'location': document.location.href,
+                        'trace': getStackTrace()
+                    }));
+                }
                 return origProperty;
                 }
             })(),
-            set: propDesc.set
+            set: (function() {
+                return function(value) {
+                var returnValue;
+
+                // set new value to original setter/location
+                if (originalSetter) { // if accessor property
+                    returnValue = originalSetter.call(this, value);
+                } else if ('value' in propDesc) { // if data property
+                    originalValue = value;
+                    returnValue = value;
+                } else {
+                    console.error("Property descriptor for",
+                        objectName + '.' + propertyName,
+                        "doesn't have setter or value?");
+                    return value;
+                }
+
+                // return new value
+                return returnValue;
+                }
+            })()
             });
         }
     }
