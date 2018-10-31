@@ -52,11 +52,15 @@ if (Object.alreadyInjected === undefined)
         return pd;
     };
 
-    function send_log(log_json) {
+    var log_buffer = []
+
+    function send_log() {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", '${proxy_dest}', true);
         xhr.setRequestHeader("Content-type", "application/json");
-        xhr.send(log_json)
+        xhr.send(JSON.stringify(log_buffer));
+        log_buffer = [];
+        setTimeout(send_log, 10000);
     }
 
     function getStackTrace() {
@@ -80,7 +84,6 @@ if (Object.alreadyInjected === undefined)
             var originalGetter = propDesc.get;
             var originalSetter = propDesc.set;
             var originalValue = propDesc.value;
-            var timer = true;
             // We overwrite both data and accessor properties as an instrumented
             // accessor property
             Object.defineProperty(object, propertyName, {
@@ -101,16 +104,13 @@ if (Object.alreadyInjected === undefined)
                     return;
                 }
 
-                if (timer)
-                {
-                    timer = false;
-                    send_log(JSON.stringify({
-                        'name' : objectName + '.' + propertyName,
-                        'property': origProperty,
-                        'location': document.location.href,
-                        'trace': getStackTrace()
-                    }));
-                }
+                log_buffer.push({
+                    'name' : objectName + '.' + propertyName,
+                    'property': origProperty,
+                    'location': document.location.href,
+                    'trace': getStackTrace(),
+                    'time' : new Date().getTime()
+                });
                 return origProperty;
                 }
             })(),
@@ -156,6 +156,7 @@ if (Object.alreadyInjected === undefined)
             {
             }
         }
+        setTimeout(send_log, 10000);
     }
 
     instrumentTree(monitorD['window'], 'window');
