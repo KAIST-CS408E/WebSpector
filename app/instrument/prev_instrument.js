@@ -52,11 +52,15 @@ if (Object.alreadyInjected === undefined)
         return pd;
     };
 
-    function send_log(log_json) {
+    var log_buffer = []
+
+    function send_log() {
         var xhr = new XMLHttpRequest();
         xhr.open("POST", '${proxy_dest}', true);
         xhr.setRequestHeader("Content-type", "application/json");
-        xhr.send(log_json)
+        xhr.send(JSON.stringify(log_buffer));
+        log_buffer = [];
+        setTimeout(send_log, 10000);
     }
 
     function getStackTrace() {
@@ -71,7 +75,7 @@ if (Object.alreadyInjected === undefined)
         return stack;
     }
 
-    function instrumentProperty(object, objectName,  propertyName) {
+    function instrumentProperty(object, objectName,  propertyName, logfunc) {
         var propDesc = Object.getPropertyDescriptor(object, propertyName);
 
 
@@ -80,7 +84,6 @@ if (Object.alreadyInjected === undefined)
             var originalGetter = propDesc.get;
             var originalSetter = propDesc.set;
             var originalValue = propDesc.value;
-            var timer = true;
             // We overwrite both data and accessor properties as an instrumented
             // accessor property
             Object.defineProperty(object, propertyName, {
@@ -101,16 +104,18 @@ if (Object.alreadyInjected === undefined)
                     return;
                 }
 
-                if (timer)
-                {
-                    timer = false;
-                    send_log(JSON.stringify({
-                        'name' : objectName + '.' + propertyName,
-                        'property': origProperty,
-                        'location': document.location.href,
-                        'trace': getStackTrace()
-                    }));
+                if(!logfunc) {
+                  log_buffer.push({
+                    'name' : objectName + '.' + propertyName,
+                    'property': origProperty,
+                    'location': document.location.href,
+                    'trace': getStackTrace(),
+                    'time' : new Date().getTime()
+                  });
+                } else {
+                  logfunc(objectName, propertyName, origProperty, document.location.href, getStackTrace(), new Date().getTime());
                 }
+
                 return origProperty;
                 }
             })(),
@@ -130,7 +135,6 @@ if (Object.alreadyInjected === undefined)
                         "doesn't have setter or value?");
                     return value;
                 }
-
                 // return new value
                 return returnValue;
                 }
@@ -138,6 +142,7 @@ if (Object.alreadyInjected === undefined)
             });
         }
     }
+
 
     function instrumentTree(object, base) {
         for (var key in object)
@@ -158,5 +163,43 @@ if (Object.alreadyInjected === undefined)
         }
     }
 
+    function instrumentDynamic(x) {
+      instrumentProperty(x, 'dynamic.style', 'fontFamily', function(objectName, propertyName, value, location, tr, time) {
+        log_buffer.push({
+            'name' : objectName + '.' + propertyName,
+            'property': value['fontFamily'],
+            'location': location,
+            'trace': tr,
+            'time' : time
+          });
+        });
+    }
+
+
+    function instrumentDynamicElement() {
+        var propDesc = Object.getPropertyDescriptor(document, 'createElement');
+
+            var originalGetter = propDesc.get;
+            var originalSetter = propDesc.set;
+            var originalValue = propDesc.value;
+            // We overwrite both data and accessor properties as an instrumented
+            // accessor property
+            Object.defineProperty(document, 'createElement', {
+            configurable: true,
+            get: (function() {
+              return function(tagname) {
+                var x = originalValue.call(document, tagname);
+                instrumentDynamic(x);
+                return x;
+              }
+            }),
+                set: originalSetter
+                });
+        }
+
+
+
     instrumentTree(monitorD['window'], 'window');
+    instrumentDynamicElement();
+    setTimeout(send_log, 10000);
 }
