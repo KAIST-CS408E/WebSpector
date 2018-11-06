@@ -32,8 +32,8 @@ if (Object.alreadyInjected === undefined)
             'screen' : {
                 'pixelDepth' : true,
                 'colorDepth' : true,
-                'height' : true,
-                'width' : true
+                //'height' : true,
+                //'width' : true
             },
             'localStorage' : true,
             'sessionStorage' : true
@@ -59,17 +59,19 @@ if (Object.alreadyInjected === undefined)
         xhr.open("POST", '${proxy_dest}', true);
         xhr.setRequestHeader("Content-type", "application/json");
         xhr.send(JSON.stringify(log_buffer));
+        //console.log(JSON.stringify(log_buffer));
         log_buffer = [];
         setTimeout(send_log, 10000);
     }
 
     function getStackTrace() {
-        var stack;
+        var stack = "unknown";
 
         try {
         throw new Error();
         } catch (err) {
-        stack = err.stack;
+        stack = err.stack.split('\n');
+        stack = stack[stack.length - 1];
         }
 
         return stack;
@@ -78,6 +80,7 @@ if (Object.alreadyInjected === undefined)
     function instrumentProperty(object, objectName,  propertyName, logfunc) {
         var propDesc = Object.getPropertyDescriptor(object, propertyName);
 
+        if(propDesc === undefined) return;
 
         if(propDesc['configurable'] === true)
         {
@@ -197,9 +200,67 @@ if (Object.alreadyInjected === undefined)
                 });
         }
 
+    function instrumentGPS() {
+        var propDesc = Object.getPropertyDescriptor(window.navigator.geolocation, 'getCurrentPosition');
 
+            var originalGetter = propDesc.get;
+            var originalSetter = propDesc.set;
+            var originalValue = propDesc.value;
+            // We overwrite both data and accessor properties as an instrumented
+            // accessor property
+            Object.defineProperty(window.navigator.geolocation, 'getCurrentPosition', {
+            configurable: true,
+            get: (function() {
+              return function(callback) {
+                var x = originalValue.call(window.navigator.geolocation, callback);
+                log_buffer.push({
+                'name' : 'GPS location',
+                'property': [],
+                'location': location,
+                'trace': getStackTrace(),
+                'time' : new Date().getTime()
+                });
+                return x;
+              }
+            }),
+                set: originalSetter
+                });
+
+    }
+
+    function instrumentEventListener() {
+        var propDesc = Object.getPropertyDescriptor(window, 'addEventListener');
+
+            var originalGetter = propDesc.get;
+            var originalSetter = propDesc.set;
+            var originalValue = propDesc.value;
+            // We overwrite both data and accessor properties as an instrumented
+            // accessor property
+            Object.defineProperty(window, 'addEventListener', {
+            configurable: true,
+            get: (function() {
+              return function(type, listener, options) {
+                var x = originalValue.bind(window)(type, listener, options);
+                log_buffer.push({
+                'name' : 'EventListener',
+                'property': arguments[0],
+                'location': location,
+                'trace': getStackTrace(),
+                'time' : new Date().getTime()
+                });
+                return x;
+              }
+            }),
+                set: originalSetter
+                });
+    }
+
+
+
+    instrumentDynamicElement();
+    instrumentGPS();
+    instrumentEventListener();
 
     instrumentTree(monitorD['window'], 'window');
-    instrumentDynamicElement();
     setTimeout(send_log, 10000);
 }

@@ -9,7 +9,7 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 class Reproducer(object):
 
     def __init__ (self):
-        with open(os.path.join(dirname, 'prev_instrument.js'), 'r') as fp:
+        with open(os.path.join(dirname, 'prev_instrument_ob.js'), 'r') as fp:
             self.prev_script = Template(fp.read())
 
     # instrument_file : change js script (filedata) to instrumented js script
