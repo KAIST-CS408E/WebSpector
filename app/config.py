@@ -1,1 +1,1 @@
-target_server = "https://1.2.3.4"
+target_server = "https://110.76.78.85:31337"

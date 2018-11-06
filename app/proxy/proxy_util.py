@@ -42,9 +42,9 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class ProxyRequestHandler(BaseHTTPRequestHandler):
-    cakey = join_with_script_dir('ca.key')
-    cacert = join_with_script_dir('ca.crt')
-    certkey = join_with_script_dir('cert.key')
+    cakey = join_with_script_dir('../../cert/rootCAkey.pem.unprotect')
+    cacert = join_with_script_dir('../../cert/rootCA.crt')
+    certkey = join_with_script_dir('../../cert/rootCAkey.pem.unprotect')
     certdir = join_with_script_dir('certs/')
     conf_ip_template = Template("subjectAltName=IP:${hostname}")
     conf_template = Template("subjectAltName=DNS:${hostname}")
