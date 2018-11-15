@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
+import errno
 import logging
 import multiprocessing
 import os
+import signal
 import socket
 import struct
+import subprocess
+
+WEBSITE_TIMEOUT = 5
 
 # Protocol Definition
 #
@@ -36,7 +41,7 @@ import struct
 class ProtocolError(Exception):
     pass
 
-class TimeoutError(Exception):
+class CTimeoutError(Exception):
     pass
 
 class Timeout:
@@ -52,9 +57,11 @@ class Timeout:
         signal.alarm(0)
 
     def _handle_timeout(self, signum, frame):
-        raise TimeoutError(self.error_message)
+        raise CTimeoutError(self.error_message)
 
 def handle(conn, address, timeout):
+    global browsers
+    global environ
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("process-{}".format(address))
     logger.debug("Connected {} at {}".format(conn, address))
@@ -64,8 +71,7 @@ def handle(conn, address, timeout):
             if conn.recv(1) != "\xff":
                 raise ProtocolError("Illegal magic number")
             option = conn.recv(1)
-            global allow_options
-            if option not in allow_options:
+            if option not in browsers:
                 raise ProtocolError("Illegal option")
             body_length = struct.unpack(">I", conn.recv(4))[0]
 
@@ -78,13 +84,33 @@ def handle(conn, address, timeout):
 
             # do something...
             # TODO: implement web browser execution
+            try:
+                if option == "\x01":
+                    subprocess.call([browsers[option],
+                                     "--allow-running-insecure-content",
+                                     "--ignore-certificate-errors",
+                                     "--ignore-urlfetcher-cert-requests",
+                                     "--disable-gpu", "--enable-logging=stderr",
+                                     "--v=2", "--no-sandbox",
+                                     body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                elif option == "\x02":
+                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                elif option == "\x03":
+                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                elif option == "\x04":
+                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                else:
+                    raise ValueError("Illegal option value passed")
+            except subprocess.TimeoutExpired:
+                pass
 
-            payload = b"\xfe\x00"
-            conn.sendall(payload)
+            conn.sendall(b"\xfe\x00")
     except ProtocolError as e:
         logger.exception("Protocol error occured: {}".format(str(e)))
-    except TimeoutError:
+        conn.sendall(b"AAAA\xfe\x01")
+    except CTimeoutError:
         logger.exception("Timeout error occured")
+        conn.sendall(b"\xfe\x01")
     except IOError:
         logger.exception("IO error... maybe connection loss")
     finally:
@@ -92,7 +118,7 @@ def handle(conn, address, timeout):
         conn.close()
 
 class WorkerServer:
-    def __init__(self, host, port, timeout=10):
+    def __init__(self, host, port, timeout=30):
         self.logger = logging.getLogger("WorkerServer")
         self._host = host
         self._port = port
@@ -113,15 +139,32 @@ class WorkerServer:
             self.logger.debug("Process {} started".format(process))
 
 if __name__ == "__main__":
-    global allow_options
+    global environ
+    global browsers
     import platform
     system = platform.system()
     if system == "Windows":
-        allow_options = ["\x01", "\x02", "\x03"]
+        browsers = {
+            "\x01": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+            "\x02": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+            "\x03": "C:\\Program Files\\Internet Explorer\\iexplore.exe"
+        }
+        environ = os.environ
     elif system == "Linux":
-        allow_options = ["\x01", "\x02"]
+        browsers = {
+            "\x01": "/usr/bin/google-chrome",
+            "\x02": "/usr/bin/firefox"
+        }
+        environ = os.environ
+        environ["DISPLAY"] = ":1"
+        subprocess.call("./linux-vscreen.sh")
     elif system == "Darwin":
-        allow_options = ["\x01", "\x02", "\x04"]
+        browsers = {
+            "\x01": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome",
+            "\x02": "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
+            "\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
+        }
+        environ = os.environ
     else:
         raise Exception("Unknown os: {}".format(system))
     del system
