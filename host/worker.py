@@ -107,7 +107,7 @@ def handle(conn, address, timeout):
             conn.sendall(b"\xfe\x00")
     except ProtocolError as e:
         logger.exception("Protocol error occured: {}".format(str(e)))
-        conn.sendall(b"AAAA\xfe\x01")
+        conn.sendall(b"\xfe\x01")
     except CTimeoutError:
         logger.exception("Timeout error occured")
         conn.sendall(b"\xfe\x01")
