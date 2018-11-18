@@ -72,7 +72,7 @@ services:
     image: webspector:proxy
     containter_name: webspector_proxy
     volumes:
-      - ./proxy:/home/proxy/proxy
+      - ./proxy:/home/wproxy/proxy
     depends_on:
       - db
     links:
