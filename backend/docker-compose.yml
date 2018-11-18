@@ -70,7 +70,7 @@ services:
       context: ./
       dockerfile: proxy.Dockerfile
     image: webspector:proxy
-    containter_name: webspector_proxy
+    container_name: webspector_proxy
     volumes:
       - ./proxy:/home/wproxy/proxy
     depends_on:

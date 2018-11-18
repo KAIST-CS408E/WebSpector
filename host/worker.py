@@ -41,23 +41,51 @@ WEBSITE_TIMEOUT = 5
 class ProtocolError(Exception):
     pass
 
-class CTimeoutError(Exception):
-    pass
+def open_browser(conn, address):
+    try:
+        # parse header
+        if conn.recv(1) != "\xff":
+            raise ProtocolError("Illegal magic number")
+        option = conn.recv(1)
+        if option not in browsers:
+            raise ProtocolError("Illegal option")
+        body_length = struct.unpack(">I", conn.recv(4))[0]
 
-class Timeout:
-    def __init__(self, sec=10, error_message=os.strerror(errno.ETIME)):
-        self.sec = sec
-        self.error_message = error_message
+        res = body_length
+        body = b""
+        while res > 0:
+            data = conn.recv(1024 if res > 1024 else res)
+            res -= len(data)
+            body += data
 
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self._handle_timeout)
-        signal.alarm(self.sec)
+        # do something...
+        # TODO: implement web browser execution
+        try:
+            if option == "\x01":
+                subprocess.call([browsers[option],
+                                 "--allow-running-insecure-content",
+                                 "--ignore-certificate-errors",
+                                 "--ignore-urlfetcher-cert-requests",
+                                 "--disable-gpu", "--enable-logging=stderr",
+                                 "--v=2", "--no-sandbox",
+                                 body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+            elif option == "\x02":
+                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+            elif option == "\x03":
+                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+            elif option == "\x04":
+                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+            else:
+                raise ValueError("Illegal option value passed")
+        except subprocess.TimeoutExpired:
+            pass
 
-    def __exit__(self, *args):
-        signal.alarm(0)
-
-    def _handle_timeout(self, signum, frame):
-        raise CTimeoutError(self.error_message)
+        conn.sendall(b"\xfe\x00")
+    except ProtocolError as e:
+        logger.exception("Protocol error occured: {}".format(str(e)))
+        conn.sendall(b"\xfe\x01")
+    except IOError:
+        logger.exception("IO error... maybe connection loss")
 
 def handle(conn, address, timeout):
     global browsers
@@ -65,57 +93,15 @@ def handle(conn, address, timeout):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("process-{}".format(address))
     logger.debug("Connected {} at {}".format(conn, address))
-    try:
-        with Timeout(sec=timeout):
-            # parse header
-            if conn.recv(1) != "\xff":
-                raise ProtocolError("Illegal magic number")
-            option = conn.recv(1)
-            if option not in browsers:
-                raise ProtocolError("Illegal option")
-            body_length = struct.unpack(">I", conn.recv(4))[0]
-
-            res = body_length
-            body = b""
-            while res > 0:
-                data = conn.recv(1024 if res > 1024 else res)
-                res -= len(data)
-                body += data
-
-            # do something...
-            # TODO: implement web browser execution
-            try:
-                if option == "\x01":
-                    subprocess.call([browsers[option],
-                                     "--allow-running-insecure-content",
-                                     "--ignore-certificate-errors",
-                                     "--ignore-urlfetcher-cert-requests",
-                                     "--disable-gpu", "--enable-logging=stderr",
-                                     "--v=2", "--no-sandbox",
-                                     body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
-                elif option == "\x02":
-                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
-                elif option == "\x03":
-                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
-                elif option == "\x04":
-                    subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
-                else:
-                    raise ValueError("Illegal option value passed")
-            except subprocess.TimeoutExpired:
-                pass
-
-            conn.sendall(b"\xfe\x00")
-    except ProtocolError as e:
-        logger.exception("Protocol error occured: {}".format(str(e)))
-        conn.sendall(b"AAAA\xfe\x01")
-    except CTimeoutError:
+    p = multiprocessing.Process(target=open_browser, args=(conn, address))
+    p.start()
+    p.join(timeout)
+    if p.exitcode == None:
         logger.exception("Timeout error occured")
         conn.sendall(b"\xfe\x01")
-    except IOError:
-        logger.exception("IO error... maybe connection loss")
-    finally:
-        logger.debug("Closing {}".format(address))
-        conn.close()
+        p.terminate()
+    logger.debug("Closing {}".format(address))
+    conn.close()
 
 class WorkerServer:
     def __init__(self, host, port, timeout=30):
@@ -171,7 +157,7 @@ if __name__ == "__main__":
     del platform
 
     logging.basicConfig(level=logging.DEBUG)
-    server = WorkerServer("0.0.0.0", 31333, timeout=10)
+    server = WorkerServer("0.0.0.0", 31333, timeout=30)
     try:
         logging.info("Server up")
         server.start()
