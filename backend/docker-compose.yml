@@ -1,0 +1,75 @@
+version: '3.3'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: webspector_db
+    volumes:
+      - ./db:/var/lib/mysql/
+    restart: always
+    environment:
+      MYSQL_DATABASE: "webspector"
+      MYSQL_USER: "dbadmin"
+      MYSQL_PASSWORD: "dbadminpassword"
+      MYSQL_ROOT_PASSWORD: "dbrootpassword"
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      ethernet_webspector:
+        ipv4_address: 192.168.0.255
+
+  # After compose file version 3+, depends_on does not support "condition"
+  # parameter. Therefore, each container should have there own scripts to wait
+  # until the DB server can accept connections.
+  webapp:
+    build:
+      context: ./
+      dockerfile: webapp.Dockerfile
+    image: webspector:webapp
+    container_name: webspector_webapp
+    depends_on:
+      - db
+    links:
+      - db
+    ports:
+      - "8080:80"
+    networks:
+      - ethernet_webspector
+
+  proxy_worker:
+    build:
+      context: ./
+      dockerfile: proxy_worker.Dockerfile
+    image: webspector:proxy_worker
+    container_name: webspector_proxy_worker
+    volumes:
+      - ./proxy_worker:/home/worker/proxy_worker
+    depends_on:
+      - db
+    links:
+      - db
+    ports:
+      - "31337:31337"
+    networks:
+      - ethernet_webspector
+    environment:
+      - PROXY_WORKER_PORT=31337
+      - DB_HOST=192.168.0.255
+      - DB_PORT=3306
+      - DB_DATABASE=webspector
+      - DB_USER=dbadmin
+      - DB_PASSWORD=dbadminpassword
+    command: python3 ./main.py
+
+networks:
+  ethernet_webspector:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.0.0/16
+
+
