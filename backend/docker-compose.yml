@@ -65,6 +65,24 @@ services:
       - DB_PASSWORD=dbadminpassword
     command: python3 ./main.py
 
+  proxy:
+    build:
+      context: ./
+      dockerfile: proxy.Dockerfile
+    image: webspector:proxy
+    containter_name: webspector_proxy
+    volumes:
+      - ./proxy:/home/proxy/proxy
+    depends_on:
+      - db
+    links:
+      - db
+    ports:
+      - "31399:31399"
+    networks:
+      - ethernet_webspector
+    command: python -m proxy.proxy.proxy 31399
+
 networks:
   ethernet_webspector:
     driver: bridge
