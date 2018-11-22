@@ -8,6 +8,8 @@ import signal
 import socket
 import struct
 import subprocess
+import threading
+import rwlock
 
 WEBSITE_TIMEOUT = 5
 
@@ -41,7 +43,7 @@ WEBSITE_TIMEOUT = 5
 class ProtocolError(Exception):
     pass
 
-def open_browser(conn, address):
+def open_browser(conn, address, lock):
     try:
         # parse header
         if conn.recv(1) != "\xff":
@@ -60,25 +62,23 @@ def open_browser(conn, address):
 
         # do something...
         # TODO: implement web browser execution
-        try:
+        with rwlock.ReadRWLock(lock):
             if option == "\x01":
-                subprocess.call([browsers[option],
+                subprocess.Popen([browsers[option],
                                  "--allow-running-insecure-content",
                                  "--ignore-certificate-errors",
                                  "--ignore-urlfetcher-cert-requests",
                                  "--disable-gpu", "--enable-logging=stderr",
                                  "--v=2", "--no-sandbox",
-                                 body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                                 body.decode("utf-8")], env=environ)
             elif option == "\x02":
-                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
             elif option == "\x03":
-                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
             elif option == "\x04":
-                subprocess.call([browsers[option], body.decode("utf-8")], env=environ, timeout=WEBSITE_TIMEOUT)
+                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
             else:
                 raise ValueError("Illegal option value passed")
-        except subprocess.TimeoutExpired:
-            pass
 
         conn.sendall(b"\xfe\x00")
     except ProtocolError as e:
@@ -87,19 +87,35 @@ def open_browser(conn, address):
     except IOError:
         logger.exception("IO error... maybe connection loss")
 
-def handle(conn, address, timeout):
+def manager(timeout, lock):
+    import time
+    import platform
+    system = platform.system()
+    while True:
+        time.sleep(2 * timeout)
+        with rwlock.WriteRWLock(lock):
+            time.sleep(WEBSITE_TIMEOUT)
+            if system == "Windows":
+                os.system("taskkill /F /im iexplore.exe /im firefox.exe /im chrome.exe")
+            elif system == "Linux":
+                os.system("killall chrome firefox")
+            elif system == "Darwin":
+                os.system("killall chrome firefox safari")
+            else:
+                raise Exception("Unknown os: {}".format(system))
+
+def handle(conn, address, timeout, lock):
     global browsers
     global environ
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("process-{}".format(address))
     logger.debug("Connected {} at {}".format(conn, address))
-    p = multiprocessing.Process(target=open_browser, args=(conn, address))
-    p.start()
-    p.join(timeout)
-    if p.exitcode == None:
+    t = threading.Thread(target=open_browser, args=(conn, address, lock))
+    t.start()
+    t.join(timeout)
+    if t.exitcode == None:
         logger.exception("Timeout error occured")
         conn.sendall(b"\xfe\x01")
-        p.terminate()
     logger.debug("Closing {}".format(address))
     conn.close()
 
@@ -116,10 +132,15 @@ class WorkerServer:
         self.socket.listen(16)
         self.logger.debug("Start to listen")
 
+        lock = rwlock.RWLock()
+        process = multiprocessing.Process(target=manager, args=(self._timeout, lock))
+        process.daemon = True
+        process.start()
+
         while True:
             conn, address = self.socket.accept()
             self.logger.debug("Accepted {}".format(address))
-            process = multiprocessing.Process(target=handle, args=(conn, address, self._timeout))
+            process = multiprocessing.Process(target=handle, args=(conn, address, self._timeout, lock))
             process.daemon = True
             process.start()
             self.logger.debug("Process {} started".format(process))
