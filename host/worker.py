@@ -43,7 +43,7 @@ WEBSITE_TIMEOUT = 5
 class ProtocolError(Exception):
     pass
 
-def open_browser(conn, address, lock):
+def open_browser(conn, address, logger, lock):
     try:
         # parse header
         if conn.recv(1) != "\xff":
@@ -110,10 +110,10 @@ def handle(conn, address, timeout, lock):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("process-{}".format(address))
     logger.debug("Connected {} at {}".format(conn, address))
-    t = threading.Thread(target=open_browser, args=(conn, address, lock))
+    t = threading.Thread(target=open_browser, args=(conn, address, logger, lock))
     t.start()
     t.join(timeout)
-    if t.exitcode == None:
+    if t.is_alive():
         logger.exception("Timeout error occured")
         conn.sendall(b"\xfe\x01")
     logger.debug("Closing {}".format(address))

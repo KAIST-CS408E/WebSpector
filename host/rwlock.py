@@ -19,7 +19,7 @@ class RWLock:
         self.condvar.acquire()
         self.readers.value -= 1
         if self.readers.value == 0:
-            self.condvar.notifyAll()
+            self.condvar.notify()
         self.condvar.release()
 
     def acquire_write(self):
@@ -28,7 +28,7 @@ class RWLock:
 
     def release_write(self):
         self.writer.value = False
-        self.condvar.notifyAll()
+        self.condvar.notify()
         self.condvar.release()
 
 
