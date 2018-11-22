@@ -43,10 +43,10 @@ WEBSITE_TIMEOUT = 5
 class ProtocolError(Exception):
     pass
 
-def open_browser(conn, address, logger, lock):
+def open_browser(conn, address, browsers, environ, logger, lock):
     try:
         # parse header
-        if conn.recv(1) != "\xff":
+        if conn.recv(1) != b"\xff":
             raise ProtocolError("Illegal magic number")
         option = conn.recv(1)
         if option not in browsers:
@@ -63,7 +63,7 @@ def open_browser(conn, address, logger, lock):
         # do something...
         # TODO: implement web browser execution
         with rwlock.ReadRWLock(lock):
-            if option == "\x01":
+            if option == b"\x01":
                 subprocess.Popen([browsers[option],
                                  "--allow-running-insecure-content",
                                  "--ignore-certificate-errors",
@@ -71,11 +71,11 @@ def open_browser(conn, address, logger, lock):
                                  "--disable-gpu", "--enable-logging=stderr",
                                  "--v=2", "--no-sandbox",
                                  body.decode("utf-8")], env=environ)
-            elif option == "\x02":
+            elif option == b"\x02":
                 subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
-            elif option == "\x03":
+            elif option == b"\x03":
                 subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
-            elif option == "\x04":
+            elif option == b"\x04":
                 subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
             else:
                 raise ValueError("Illegal option value passed")
@@ -104,13 +104,11 @@ def manager(timeout, lock):
             else:
                 raise Exception("Unknown os: {}".format(system))
 
-def handle(conn, address, timeout, lock):
-    global browsers
-    global environ
+def handle(conn, address, browsers, environ, timeout, lock):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("process-{}".format(address))
     logger.debug("Connected {} at {}".format(conn, address))
-    t = threading.Thread(target=open_browser, args=(conn, address, logger, lock))
+    t = threading.Thread(target=open_browser, args=(conn, address, browsers, environ, logger, lock))
     t.start()
     t.join(timeout)
     if t.is_alive():
@@ -125,6 +123,34 @@ class WorkerServer:
         self._host = host
         self._port = port
         self._timeout = timeout
+        import platform
+        system = platform.system()
+        if system == "Windows":
+            self.browsers = {
+                b"\x01": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+                b"\x02": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                b"\x03": "C:\\Program Files\\Internet Explorer\\iexplore.exe"
+            }
+            self.environ = os.environ
+        elif system == "Linux":
+            browsers = {
+                b"\x01": "/usr/bin/google-chrome",
+                b"\x02": "/usr/bin/firefox"
+            }
+            self.environ = os.environ
+            self.environ["DISPLAY"] = ":1"
+            subprocess.call("./linux-vscreen.sh")
+        elif system == "Darwin":
+            self.browsers = {
+                b"\x01": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome",
+                b"\x02": "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
+                b"\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
+            }
+            self.environ = os.environ
+        else:
+            raise Exception("Unknown os: {}".format(system))
+        del system
+        del platform
 
     def start(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -140,43 +166,12 @@ class WorkerServer:
         while True:
             conn, address = self.socket.accept()
             self.logger.debug("Accepted {}".format(address))
-            process = multiprocessing.Process(target=handle, args=(conn, address, self._timeout, lock))
+            process = multiprocessing.Process(target=handle, args=(conn, address, self.browsers, self.environ, self._timeout, lock))
             process.daemon = True
             process.start()
             self.logger.debug("Process {} started".format(process))
 
 if __name__ == "__main__":
-    global environ
-    global browsers
-    import platform
-    system = platform.system()
-    if system == "Windows":
-        browsers = {
-            "\x01": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-            "\x02": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
-            "\x03": "C:\\Program Files\\Internet Explorer\\iexplore.exe"
-        }
-        environ = os.environ
-    elif system == "Linux":
-        browsers = {
-            "\x01": "/usr/bin/google-chrome",
-            "\x02": "/usr/bin/firefox"
-        }
-        environ = os.environ
-        environ["DISPLAY"] = ":1"
-        subprocess.call("./linux-vscreen.sh")
-    elif system == "Darwin":
-        browsers = {
-            "\x01": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome",
-            "\x02": "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
-            "\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
-        }
-        environ = os.environ
-    else:
-        raise Exception("Unknown os: {}".format(system))
-    del system
-    del platform
-
     logging.basicConfig(level=logging.DEBUG)
     server = WorkerServer("0.0.0.0", 31333, timeout=30)
     try:
