@@ -131,13 +131,13 @@ class WorkerServer:
                 b"\x02": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
                 b"\x03": "C:\\Program Files\\Internet Explorer\\iexplore.exe"
             }
-            self.environ = os.environ
+            self.environ = dict(os.environ)
         elif system == "Linux":
-            browsers = {
+            self.browsers = {
                 b"\x01": "/usr/bin/google-chrome",
                 b"\x02": "/usr/bin/firefox"
             }
-            self.environ = os.environ
+            self.environ = dict(os.environ)
             self.environ["DISPLAY"] = ":1"
             subprocess.call("./linux-vscreen.sh")
         elif system == "Darwin":
@@ -146,7 +146,7 @@ class WorkerServer:
                 b"\x02": "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
                 b"\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
             }
-            self.environ = os.environ
+            self.environ = dict(os.environ)
         else:
             raise Exception("Unknown os: {}".format(system))
         del system
