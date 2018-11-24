@@ -111,12 +111,12 @@ if (Object.alreadyInjected === undefined)
                   log_buffer.push({
                     'name' : objectName + '.' + propertyName,
                     'property': origProperty,
-                    'location': document.location.href,
+                    'location': window.location.href,
                     'trace': getStackTrace(),
                     'time' : new Date().getTime()
                   });
                 } else {
-                  logfunc(objectName, propertyName, origProperty, document.location.href, getStackTrace(), new Date().getTime());
+                  logfunc(objectName, propertyName, origProperty, window.location.href, getStackTrace(), new Date().getTime());
                 }
 
                 return origProperty;
@@ -216,7 +216,7 @@ if (Object.alreadyInjected === undefined)
                 log_buffer.push({
                 'name' : 'GPS location',
                 'property': [],
-                'location': location,
+                'location': window.location.href,
                 'trace': getStackTrace(),
                 'time' : new Date().getTime()
                 });
@@ -244,7 +244,7 @@ if (Object.alreadyInjected === undefined)
                 log_buffer.push({
                 'name' : 'EventListener',
                 'property': arguments[0],
-                'location': location,
+                'location': window.location.href,
                 'trace': getStackTrace(),
                 'time' : new Date().getTime()
                 });
