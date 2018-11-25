@@ -64,6 +64,8 @@ def open_browser(conn, address, browsers, environ, logger, lock):
         # do something...
         # TODO: implement web browser execution
         with rwlock.ReadRWLock(lock):
+            if not body.startswith(b"http"):
+                body = b"http://" + body
             if platform.system() == "Darwin":
                 subprocess.Popen(["/usr/bin/open", "-a", browsers[option], body.decode("utf-8")], env=environ)
             else:
