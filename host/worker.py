@@ -76,7 +76,7 @@ def open_browser(conn, address, browsers, environ, logger, lock):
             elif option == b"\x03":
                 subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
             elif option == b"\x04":
-                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
+                subprocess.Popen(["/usr/bin/open", "-a", browsers[option], body.decode("utf-8")], env=environ)
             else:
                 raise ValueError("Illegal option value passed")
 
@@ -100,7 +100,7 @@ def manager(timeout, lock):
             elif system == "Linux":
                 os.system("killall chrome firefox")
             elif system == "Darwin":
-                os.system("killall chrome firefox safari")
+                os.system("killall Google\\ Chrome firefox Safari")
             else:
                 raise Exception("Unknown os: {}".format(system))
 
@@ -142,9 +142,10 @@ class WorkerServer:
             subprocess.call("./linux-vscreen.sh")
         elif system == "Darwin":
             self.browsers = {
-                b"\x01": "/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome",
-                b"\x02": "/Applications/Firefox.app/Contents/MacOS/firefox-bin",
-                b"\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
+                b"\x01": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                b"\x02": "/Applications/Firefox.app/Contents/MacOS/firefox",
+                #b"\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
+                b"\x04": "Safari"
             }
             self.environ = dict(os.environ)
         else:
