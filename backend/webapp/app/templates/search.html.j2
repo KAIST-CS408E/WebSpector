@@ -1,0 +1,56 @@
+{% extends 'base.html.j2' %}
+{% block title -%} Webspector {%- endblock %}
+{% block content -%}
+{% include 'navbar.html.j2' %}
+<div id="res_div" class="uk-container uk-container-xlarge uk-margin-medium" style="filter: blur(4px);">
+  <div class="uk-width-xxlarge uk-align-center uk-width-1-1@m">
+    {% include 'inspect_result.html.j2' %}
+  </div>
+</div>
+<div class="uk-overlay-default uk-position-cover" id=loading2></div>
+<div class="uk-overlay uk-position-center uk-align-center uk-dark" id="loading">
+  Loading
+</div>
+{%- endblock %}
+{% block script %}
+<script>
+  $(document).ajaxStart(function() {
+    $("#loading").show();
+  }).ajaxStop(function() {
+    $(res_div).css("filter", "blur(0)");
+    $("#loading").css("display", "none");
+    $("#loading2").css("display", "none");
+  });
+
+  $.ajax({
+    type: "GET",
+    dataType: 'json',
+    url: "/api/result?url={{ url }}",
+    success: function(data) {
+      // $('#radar').text(data["url"]);
+      var options = {
+        'legend':{
+          names: [
+            'LocalStorage',
+            'Cookie',
+            'sessionStorage',
+            'EventListener',
+            'userAgent',
+          ],
+        },
+        'dataset': {
+          title: 'Score',
+          values: [170, 168, 17, 12, 8 ],
+          colorset: ['#DC143C', '#FF8C00', "#30A1CE"]
+        },
+        'chartDiv': 'radar',
+        'chartType': 'column',
+        'chartSize': { width: 300, height: 300 },
+        'maxValue': 170,
+	'increment': 20
+      };
+      Nwagon.chart(options);
+    }
+  });
+</script>
+{% endblock %}

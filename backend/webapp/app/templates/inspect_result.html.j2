@@ -1,0 +1,125 @@
+<div class="uk-card uk-card-default uk-card-body">
+  <h3 class="uk-card-title">Result of {{ url }}</h3>
+  <table class="uk-table uk-table-divider" style="table-layout: fixed;">
+    <tbody>
+      <tr>
+        <td colspan="3">
+          <h4>Summary</h4>
+        </td>
+      </tr>
+      <tr>
+        <td rowspan="2">
+          Radar
+          <div id="radar"></div>
+        </td>
+        <td colspan="2">
+          Record<br/><br/>
+          {% if location_switch %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/location_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is tracking your location">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/location_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is not tracking your location">
+          {% endif %}
+          {% if device_switch %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/device_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is tracking your device data">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/device_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is not tracking your device data">
+          {% endif %}
+          {% if ident_active %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/ident_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is tracking your identification">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/ident_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is not tracking your identification">
+          {% endif %}
+          {% if access_active %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/access_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is tracking your access log">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/access_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="Site is not tracking your access log">
+          {% endif %}
+          {% if cookie_active %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/cookie_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="This is description of Achievement5">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/cookie_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="This is description of Achievement5">
+          {% endif %}
+          {% if cookie_active %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/browser_active.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="This is description of Achievement5">
+          {% else %}
+          <img class="uk-border-rounded" src="{{ url_for('static', filename='img/browser_inactive.png') }}" width="15%" height="100" alt="" data-uk-tooltip="{pos:'bottom'}" title="This is description of Achievement5">
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td>
+        Web Info<br/><br/>
+        <div class="uk-margin-medium-left">
+          <label><input class="uk-checkbox" type="checkbox" checked disabled> SSL - Verified Certificate</label><br/>
+          <label><input class="uk-checkbox" type="checkbox" checked disabled> whois - Some whois data</label>
+        </div>
+        </td>
+        <td>
+          Score<br/><br/>
+          <div class="uk-text-center uk-text-middle">
+            {% if score < 30 %}
+            <img class="uk-border-circle" src="{{ url_for('static', filename='img/bad.png') }}" width="100px" height="100px" alt="">
+            {% elif score < 60 %}
+            <img class="uk-border-circle" src="{{ url_for('static', filename='img/warning.png') }}" width="100px" height="100px" alt="">
+            {% else %}
+            <img class="uk-border-circle" src="{{ url_for('static', filename='img/good.png') }}" width="100px" height="100px" alt="">
+            {% endif %}
+            <font class="uk-margin-medium-left" size="31px">65</font>
+          </div>
+        </td>
+      </tr>
+      <tr>
+      <td></td><td></td><td></td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="uk-table uk-table-divider">
+    <tbody>
+      <tr>
+        <td>
+          <h4>Inspect Report</h4>
+        </td>
+      </tr>
+      <tr>
+        <td>
+        </td>
+      </tr>
+    <tbody>
+  </table>
+  <div class="uk-margin uk-align-center">
+    <div class="uk-card uk-card-default uk-card-body">
+      <ul uk-accordion>
+        <li>
+          <a class="uk-accordion-title" href="#">Item 1</a>
+          <div class="uk-accordion-content">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+          </div>
+        </li>
+      <ul>
+    </div>
+  </div>
+  <div class="uk-margin uk-align-center">
+    <div class="uk-card uk-card-default uk-card-body">
+      <ul uk-accordion>
+        <li>
+          <a class="uk-accordion-title" href="#">Item 1</a>
+          <div class="uk-accordion-content">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+          </div>
+        </li>
+      <ul>
+    </div>
+  </div>
+  <table class="uk-table uk-table-divider">
+    <tbody>
+      <tr>
+        <td>
+        </td>
+      </tr>
+      <tr>
+        <td>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
