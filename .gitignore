@@ -5,6 +5,8 @@
 **/*.srl
 !cert/rootCA*
 
+!backend/proxy/cert/rootCA*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
