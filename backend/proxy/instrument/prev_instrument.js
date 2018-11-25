@@ -61,7 +61,7 @@ if (Object.alreadyInjected === undefined)
         xhr.send(JSON.stringify(log_buffer));
         //console.log(JSON.stringify(log_buffer));
         log_buffer = [];
-        setTimeout(send_log, 10000);
+        setTimeout(send_log, 3000);
     }
 
     function getStackTrace() {
