@@ -4,6 +4,7 @@ import errno
 import logging
 import multiprocessing
 import os
+import platform
 import signal
 import socket
 import struct
@@ -63,22 +64,27 @@ def open_browser(conn, address, browsers, environ, logger, lock):
         # do something...
         # TODO: implement web browser execution
         with rwlock.ReadRWLock(lock):
-            if option == b"\x01":
-                subprocess.Popen([browsers[option],
+            if not body.startswith(b"http"):
+                body = b"http://" + body
+            if platform.system() == "Darwin":
+                subprocess.Popen(["/usr/bin/open", "-a", browsers[option], body.decode("utf-8")], env=environ)
+            else:
+                if option == b"\x01":
+                    subprocess.Popen([browsers[option],
                                  "--allow-running-insecure-content",
                                  "--ignore-certificate-errors",
                                  "--ignore-urlfetcher-cert-requests",
                                  "--disable-gpu", "--enable-logging=stderr",
                                  "--v=2", "--no-sandbox",
                                  body.decode("utf-8")], env=environ)
-            elif option == b"\x02":
-                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
-            elif option == b"\x03":
-                subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
-            elif option == b"\x04":
-                subprocess.Popen(["/usr/bin/open", "-a", browsers[option], body.decode("utf-8")], env=environ)
-            else:
-                raise ValueError("Illegal option value passed")
+                elif option == b"\x02":
+                    subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
+                elif option == b"\x03":
+                    subprocess.Popen([browsers[option], body.decode("utf-8")], env=environ)
+                elif option == b"\x04":
+                    subprocess.Popen(["/usr/bin/open", "-a", browsers[option], body.decode("utf-8")], env=environ)
+                else:
+                    raise ValueError("Illegal option value passed")
 
         conn.sendall(b"\xfe\x00")
     except ProtocolError as e:
@@ -89,10 +95,9 @@ def open_browser(conn, address, browsers, environ, logger, lock):
 
 def manager(timeout, lock):
     import time
-    import platform
     system = platform.system()
     while True:
-        time.sleep(2 * timeout)
+        time.sleep( timeout)
         with rwlock.WriteRWLock(lock):
             time.sleep(WEBSITE_TIMEOUT)
             if system == "Windows":
@@ -100,7 +105,8 @@ def manager(timeout, lock):
             elif system == "Linux":
                 os.system("killall chrome firefox")
             elif system == "Darwin":
-                os.system("killall Google\\ Chrome firefox Safari")
+                os.system("killall Google\\ Chrome firefox")
+                os.system("osascript -e \"tell application \\\"Safari\\\" to quit\"")
             else:
                 raise Exception("Unknown os: {}".format(system))
 
@@ -123,7 +129,6 @@ class WorkerServer:
         self._host = host
         self._port = port
         self._timeout = timeout
-        import platform
         system = platform.system()
         if system == "Windows":
             self.browsers = {
@@ -142,16 +147,14 @@ class WorkerServer:
             subprocess.call("./linux-vscreen.sh")
         elif system == "Darwin":
             self.browsers = {
-                b"\x01": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                b"\x02": "/Applications/Firefox.app/Contents/MacOS/firefox",
-                #b"\x04": "/Applications/Safari.app/Contents/MacOS/Safari"
+                b"\x01": "Google Chrome",
+                b"\x02": "firefox",
                 b"\x04": "Safari"
             }
             self.environ = dict(os.environ)
         else:
             raise Exception("Unknown os: {}".format(system))
         del system
-        del platform
 
     def start(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
