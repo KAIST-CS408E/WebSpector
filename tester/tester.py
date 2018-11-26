@@ -18,7 +18,7 @@ def main(file):
                 total += count
                 count = 0
                 print "Now: {}/{}".format(total, len(websites))
-                time.sleep(5)
+                time.sleep(3)
             for browser in ["\x01", "\x02"]:
                 p = remote("ec2-54-180-94-105.ap-northeast-2.compute.amazonaws.com", 31333)
                 payload = "\xff"
@@ -46,6 +46,7 @@ def main(file):
                 p.send(payload)
                 p.close()
             count += 1
+            time.sleep(1)
     except IOError as e:
         print >> sys.stderr, str(e)
 
