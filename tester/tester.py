@@ -11,8 +11,13 @@ def main(file):
             websites = f.readlines()
 
         count = 0
+        total = 0
         for website in websites:
-            if count > 5:
+            website = website.strip()
+            if count > 4:
+                total += count
+                count = 0
+                print "Now: {}/{}".format(total, len(websites))
                 time.sleep(5)
             for browser in ["\x01", "\x02"]:
                 p = remote("ec2-54-180-94-105.ap-northeast-2.compute.amazonaws.com", 31333)
