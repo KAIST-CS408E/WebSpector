@@ -105,7 +105,8 @@ def manager(timeout, lock):
             elif system == "Linux":
                 os.system("killall chrome firefox")
             elif system == "Darwin":
-                os.system("killall Google\\ Chrome firefox Safari")
+                os.system("killall Google\\ Chrome firefox")
+                os.system("osascript -e \"tell application \\\"Safari\\\" to quit\"")
             else:
                 raise Exception("Unknown os: {}".format(system))
 
