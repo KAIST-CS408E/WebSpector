@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, url_for, redirect, flash, request, abort, send_from_directory
 from . import db_session
 from .models import *
+import time
 
 import requests
 import json
@@ -11,14 +12,14 @@ frontend = Blueprint('frontend', __name__)
 def index():
     return render_template('index.html.j2', search='http://www.example.com/')
 
-@app.route('/search', methods=['GET'])
+@frontend.route('/search', methods=['GET'])
 def search():
     url = str()
     if 'key' in request.args:
         url = request.args.get('key')
-    return render_template('search.html.j2', url=url)
+    return render_template('search.html.j2', url=url, score=50)
 
-@app.route('/api/result', methods=["GET"])
+@frontend.route('/api/result', methods=["GET"])
 def result():
     time.sleep(1)
     url = str()

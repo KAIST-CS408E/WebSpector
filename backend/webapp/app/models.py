@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, DateTime, Text, JSON
 from . import Base
 
 class Inspect(Base):
+    __tablename__ = "webspector_data"
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique = False)
     property = Column(JSON, unique = False)
