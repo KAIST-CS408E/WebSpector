@@ -1,0 +1,44 @@
+{% extends 'base.html.j2' %}
+{% block title -%} Webspector {%- endblock %}
+{% block content -%}
+{% include 'navbar.html.j2' %}
+{% include 'banner.html.j2' %}
+<div class="uk-flex uk-height-medium uk-background-muted uk-margin">
+<div class="uk-margin-auto uk-margin-auto-vertical uk-width-3-4@s uk-align-center">
+  <div uk-grid>
+    <div class="uk-width-1-3">
+      <div class="uk-panel">
+        <div class="uk-text-center">
+          Label1
+        </div>
+        <div>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ullamcorper mollis nibh ac auctor.
+        </div>
+      </div>
+    </div>
+    <div class="uk-width-1-3">
+      <div class="uk-panel">
+        <div class="uk-text-center">
+          Label2
+        </div>
+        <div>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ullamcorper mollis nibh ac auctor.
+        </div>
+      </div>
+    </div>
+    <div class="uk-width-1-3">
+      <div class="uk-panel">
+        <div class="uk-text-center">
+          Label3
+        </div>
+        <div>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus ullamcorper mollis nibh ac auctor.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{%- endblock %}
+{% block script %}
+{% endblock %}

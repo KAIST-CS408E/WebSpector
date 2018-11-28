@@ -1,0 +1,12 @@
+click
+Flask
+Flask-WTF
+itsdangerous
+Jinja2
+MarkupSafe
+SQLAlchemy
+Werkzeug
+wheel
+WTForms
+mysql-python
+requests

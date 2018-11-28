@@ -1,0 +1,87 @@
+{% extends 'base.html.j2' %}
+{% block title -%} Webspector {%- endblock %}
+{% block content -%}
+{% include 'navbar.html.j2' %}
+<div id="res_div" class="uk-container uk-container-xlarge uk-margin-medium" style="filter: blur(4px);">
+  <div class="uk-width-xxlarge uk-align-center uk-width-1-1@m">
+    {% include 'inspect_result.html.j2' %}
+  </div>
+</div>
+<div class="uk-overlay-default uk-position-cover" id=loading2></div>
+<div class="uk-overlay uk-position-center uk-align-center uk-dark" id="loading">
+  Loading
+</div>
+{%- endblock %}
+{% block script %}
+<script>
+  $(document).ajaxStart(function() {
+    $("#loading").show();
+  }).ajaxStop(function() {
+    $(res_div).css("filter", "blur(0)");
+    $("#loading").css("display", "none");
+    $("#loading2").css("display", "none");
+  });
+
+  $.ajax({
+    type: "GET",
+    dataType: 'json',
+    url: "/api/result?url={{ url }}",
+    success: function(data) {
+      $('#score_num').text(data.score);
+      if(data.score > 70){
+        $('#score_img').attr("src","/static/img/good.png");
+      } else if (data.score > 40){
+        $('#score_img').attr("src","/static/img/warning.png");
+      } else {
+        $('#score_img').attr("src","/static/img/bad.png");
+      }
+      if(data.agent) {
+        $('#browser_ach').attr("src", "/static/img/browser_active.png");
+      } else {
+        $('#browser_ach').attr("src", "/static/img/browser_inactive.png");
+      }
+      if(data.cookie) {
+        $('#cookie_ach').attr("src", "/static/img/cookie_active.png");
+      } else {
+        $('#cookie_ach').attr("src", "/static/img/cookie_inactive.png");
+      }
+      if(data.location) {
+        $('#location_ach').attr("src", "/static/img/location_active.png");
+      } else {
+        $('#location_ach').attr("src", "/static/img/location_inactive.png");
+      }
+      if(data.device) {
+        $('#device_ach').attr("src", "/static/img/device_active.png");
+      } else {
+        $('#device_ach').attr("src", "/static/img/device_inactive.png");
+      }
+      if(data.identi) {
+        $('#ident_ach').attr("src", "/static/img/ident_active.png");
+      } else {
+        $('#ident_ach').attr("src", "/static/img/ident_inactive.png");
+      }
+      if(data.history) {
+        $('#access_ach').attr("src", "/static/img/access_active.png");
+      } else {
+        $('#access_ach').attr("src", "/static/img/access_inactive.png");
+      }
+      // $('#radar').text(data["url"]);
+      var options = {
+        'legend':{
+          names: data.radar_key,
+        },
+        'dataset': {
+          title: 'Score',
+          values: data.radar_value,
+          bgColor: '#f9f9f9',
+          fgColor: '#30a1ce'
+        },
+        'chartDiv': 'radar',
+        'chartType': 'radar',
+        'chartSize': { width: 300, height: 300 },
+      };
+      Nwagon.chart(options);
+    }
+  });
+</script>
+{% endblock %}
