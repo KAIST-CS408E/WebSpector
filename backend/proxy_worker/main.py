@@ -46,11 +46,12 @@ class WorkerHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers["Content-Length"])
         raw_data = self.rfile.read(content_length)
         try:
-            json_data = json.loads(raw_data)
+            json_data_lst = json.loads(raw_data)
             db = pool.connection()
             cur = db.cursor()
-            query = "INSERT INTO test (json) VALUES ('{}')".format(json.dumps(json_data)).replace("\\", "\\\\")
-            cur.execute(query)
+            for json_data in json_data_lst:
+                query = "INSERT INTO webspector_data (name, property, location, trace) VALUES ('{}', '{}', '{}', '{}')".format(json_data["name"], json.dumps(json_data["property"]), json_data["location"], json_data["trace"]).replace("\\", "\\\\")
+                cur.execute(query)
             db.commit()
             del cur
             del db

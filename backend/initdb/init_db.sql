@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS webspector;
+
+CREATE TABLE IF NOT EXISTS webspector.webspector_data (
+  id INT unsigned NOT NULL AUTO_INCREMENT,
+  name TEXT,
+  property JSON,
+  location TEXT,
+  trace TEXT,
+  time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
