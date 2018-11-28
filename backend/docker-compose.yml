@@ -6,6 +6,7 @@ services:
     container_name: webspector_db
     volumes:
       - ./db:/var/lib/mysql/
+      - ./initdb:/docker-entrypoint-initdb.d/
     restart: always
     environment:
       MYSQL_DATABASE: "webspector"

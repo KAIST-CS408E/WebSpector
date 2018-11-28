@@ -27,27 +27,58 @@
     dataType: 'json',
     url: "/api/result?url={{ url }}",
     success: function(data) {
+      $('#score_num').text(data.score);
+      if(data.score > 70){
+        $('#score_img').attr("src","/static/img/good.png");
+      } else if (data.score > 40){
+        $('#score_img').attr("src","/static/img/warning.png");
+      } else {
+        $('#score_img').attr("src","/static/img/bad.png");
+      }
+      if(data.agent) {
+        $('#browser_ach').attr("src", "/static/img/browser_active.png");
+      } else {
+        $('#browser_ach').attr("src", "/static/img/browser_inactive.png");
+      }
+      if(data.cookie) {
+        $('#cookie_ach').attr("src", "/static/img/cookie_active.png");
+      } else {
+        $('#cookie_ach').attr("src", "/static/img/cookie_inactive.png");
+      }
+      if(data.location) {
+        $('#location_ach').attr("src", "/static/img/location_active.png");
+      } else {
+        $('#location_ach').attr("src", "/static/img/location_inactive.png");
+      }
+      if(data.device) {
+        $('#device_ach').attr("src", "/static/img/device_active.png");
+      } else {
+        $('#device_ach').attr("src", "/static/img/device_inactive.png");
+      }
+      if(data.identi) {
+        $('#ident_ach').attr("src", "/static/img/ident_active.png");
+      } else {
+        $('#ident_ach').attr("src", "/static/img/ident_inactive.png");
+      }
+      if(data.history) {
+        $('#access_ach').attr("src", "/static/img/access_active.png");
+      } else {
+        $('#access_ach').attr("src", "/static/img/access_inactive.png");
+      }
       // $('#radar').text(data["url"]);
       var options = {
         'legend':{
-          names: [
-            'LocalStorage',
-            'Cookie',
-            'sessionStorage',
-            'EventListener',
-            'userAgent',
-          ],
+          names: data.radar_key,
         },
         'dataset': {
           title: 'Score',
-          values: [170, 168, 17, 12, 8 ],
-          colorset: ['#DC143C', '#FF8C00', "#30A1CE"]
+          values: data.radar_value,
+          bgColor: '#f9f9f9',
+          fgColor: '#30a1ce'
         },
         'chartDiv': 'radar',
-        'chartType': 'column',
+        'chartType': 'radar',
         'chartSize': { width: 300, height: 300 },
-        'maxValue': 170,
-	'increment': 20
       };
       Nwagon.chart(options);
     }
